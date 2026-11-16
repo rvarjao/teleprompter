@@ -1,0 +1,18 @@
+sed: can't read dist/app.js: No such file or directory
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#000000"><title>Leitura · Teleprompter Manual</title><link rel="stylesheet" href="style.css"></head>
+<body>
+  <main id="reader" class="screen reader-screen">
+    <video id="camera" class="camera" autoplay muted playsinline aria-hidden="true"></video><div class="camera-shade" aria-hidden="true"></div>
+    <header class="reader-bar"><a id="back" class="icon-button back-link" href="index.html" aria-label="Voltar para edição">←</a><div class="reader-controls"><button id="smaller" class="control-button" type="button" aria-label="Diminuir fonte">A−</button><span id="reader-size" aria-live="polite">32</span><button id="larger" class="control-button" type="button" aria-label="Aumentar fonte">A+</button><button id="fullscreen" class="icon-button" type="button" aria-label="Alternar tela cheia">⛶</button></div></header>
+    <div id="scroll-area" class="scroll-area" tabindex="0" aria-label="Texto do teleprompter"><article id="reader-text"></article><div class="end-mark">fim</div></div>
+    <div class="record-panel">
+      <div class="auto-controls"><div class="speed-control"><label for="scroll-speed">Rolagem <output id="scroll-speed-value">22 px/s</output></label><input id="scroll-speed" type="range" min="6" max="80" value="22" aria-describedby="scroll-speed-value"></div><button id="scroll-toggle" class="scroll-button" type="button"><span aria-hidden="true">▶</span> Continuar</button></div>
+      <div class="record-row"><span id="camera-status" class="camera-status" aria-live="polite">Preparando câmera…</span><div class="record-actions"><button id="mirror-camera" class="control-button camera-mirror-button" type="button" aria-pressed="false">↔ Espelhar</button><button id="flip-camera" class="control-button" type="button" aria-label="Trocar câmera">↻</button><button id="record" class="record-button" type="button"><span></span> Gravar</button><button id="download" class="control-button" type="button" aria-label="Baixar vídeo" hidden>↓</button></div></div>
+    </div>
+    <div class="gesture-hint" aria-hidden="true">deslize para rolar</div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
