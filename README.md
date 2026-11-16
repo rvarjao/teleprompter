@@ -1,10 +1,12 @@
 # Teleprompter Manual
 
-Teleprompter simples para celular: escreva ou cole o roteiro, inicie a leitura e role manualmente com o dedo.
+Teleprompter simples para celular: escreva ou cole o roteiro, inicie a leitura e role manualmente com o dedo. O modo de leitura pode mostrar a câmera atrás do texto e gravar o vídeo diretamente no aparelho.
 
 ## Uso
 
-Abra `dist/index.html` em um navegador. O roteiro, o tamanho da fonte e a opção de espelhamento são guardados localmente no navegador do aparelho.
+Abra o aplicativo em um navegador. O roteiro, o tamanho da fonte e a opção de espelhamento são guardados localmente no navegador do aparelho. No modo de leitura, aceite a permissão de câmera e microfone; toque em **Gravar** para começar e em **Parar** para liberar o botão de download do vídeo.
+
+> A câmera exige uma origem segura (HTTPS), como o GitHub Pages. Ela pode não abrir ao acessar o arquivo diretamente ou por uma rede HTTP local.
 
 ## Publicar no GitHub Pages
 
