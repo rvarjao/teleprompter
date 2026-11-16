@@ -1,64 +1,40 @@
 (() => {
-  const $ = (selector) => document.querySelector(selector);
-  const storageKey = 'teleprompter-manual-v1';
-  const script = $('#script'); const fontSize = $('#font-size'); const mirror = $('#mirror');
-  const reader = $('#reader'); const editor = $('#editor'); const readerText = $('#reader-text'); const scrollArea = $('#scroll-area');
-  const fontValue = $('#font-value'); const readerSize = $('#reader-size'); const wordCount = $('#word-count'); const status = $('.status'); const hint = $('.gesture-hint');
-  const camera = $('#camera'); const cameraStatus = $('#camera-status'); const recordButton = $('#record'); const flipButton = $('#flip-camera'); const downloadButton = $('#download'); const mirrorCameraButton = $('#mirror-camera');
-  const scrollSpeed = $('#scroll-speed'); const scrollSpeedValue = $('#scroll-speed-value'); const scrollToggle = $('#scroll-toggle');
-  const defaultText = 'Bem-vindo ao seu teleprompter.\n\nCole o seu texto na tela inicial e use o dedo para rolar durante a gravação.\n\nBoa gravação!';
-  let saveTimer;
-  function readState() { try { return JSON.parse(localStorage.getItem(storageKey)) || {}; } catch { return {}; } }
-  function save() { const data = { text: script.value, size: +fontSize.value, mirror: mirror.checked, scrollSpeed: +scrollSpeed.value, cameraMirror: camera.classList.contains('is-mirrored') }; localStorage.setItem(storageKey, JSON.stringify(data)); status.innerHTML = '<span></span> Salvo'; }
-  function scheduleSave() { status.innerHTML = '<span></span> Salvando'; clearTimeout(saveTimer); saveTimer = setTimeout(save, 250); }
-  function updateWords() { const count = (script.value.trim().match(/\S+/g) || []).length; wordCount.textContent = `${count} ${count === 1 ? 'palavra' : 'palavras'}`; }
-  function updateSize() { const value = +fontSize.value; document.documentElement.style.setProperty('--font-size', `${value}px`); fontValue.textContent = `${value} px`; readerSize.textContent = value; scheduleSave(); }
-  const state = readState(); script.value = state.text ?? defaultText; fontSize.value = state.size ?? 32; mirror.checked = state.mirror ?? false; scrollSpeed.value = state.scrollSpeed ?? 22; camera.classList.toggle('is-mirrored', state.cameraMirror ?? false); mirrorCameraButton.classList.toggle('is-active', state.cameraMirror ?? false); mirrorCameraButton.setAttribute('aria-pressed', String(state.cameraMirror ?? false)); updateWords(); updateSize();
-  function updateScrollSpeed() { scrollSpeedValue.textContent = `${scrollSpeed.value} px/s`; scheduleSave(); }
-  updateScrollSpeed();
-  script.addEventListener('input', () => { updateWords(); scheduleSave(); }); fontSize.addEventListener('input', updateSize); mirror.addEventListener('change', scheduleSave); scrollSpeed.addEventListener('input', updateScrollSpeed);
-  let stream; let recorder; let chunks = []; let videoUrl; let facingMode = 'user';
-  let autoScrolling = false; let scrollFrame; let previousFrame;
-  function setCameraStatus(message) { cameraStatus.textContent = message; }
-  function toggleCameraMirror() { const mirrored = camera.classList.toggle('is-mirrored'); mirrorCameraButton.classList.toggle('is-active', mirrored); mirrorCameraButton.setAttribute('aria-pressed', String(mirrored)); scheduleSave(); }
-  async function startCamera() {
-    if (!navigator.mediaDevices?.getUserMedia) { setCameraStatus('A câmera não é compatível com este navegador.'); return; }
-    if (stream) stream.getTracks().forEach(track => track.stop());
-    setCameraStatus('Pedindo acesso à câmera…');
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facingMode } }, audio: true });
-      camera.srcObject = stream; await camera.play(); setCameraStatus('Câmera pronta'); recordButton.disabled = false; flipButton.disabled = false;
-    } catch (error) {
-      setCameraStatus(error.name === 'NotAllowedError' ? 'Permita câmera e microfone para gravar.' : 'Não foi possível abrir a câmera.');
-      recordButton.disabled = true;
-    }
+  const $ = s => document.querySelector(s), key = 'teleprompter-manual-v1';
+  const fallback = 'Bem-vindo ao seu teleprompter.\n\nCole o seu texto na tela inicial e use o dedo para rolar durante a gravação.\n\nBoa gravação!';
+  const get = () => { try { return JSON.parse(localStorage.getItem(key)) || {}; } catch { return {}; } };
+  const put = value => localStorage.setItem(key, JSON.stringify(value));
+  if ($('#script')) {
+    const text = $('#script'), size = $('#font-size'), mirror = $('#mirror'), count = $('#word-count'), output = $('#font-value'), status = $('.status'), saved = get();
+    text.value = saved.text ?? fallback; size.value = saved.size ?? 32; mirror.checked = saved.mirror ?? false;
+    let pending;
+    const save = () => { put({ ...get(), text: text.value, size: +size.value, mirror: mirror.checked }); status.innerHTML = '<span></span> Salvo'; };
+    const update = () => { const n = (text.value.trim().match(/\S+/g) || []).length; count.textContent = `${n} ${n === 1 ? 'palavra' : 'palavras'}`; output.textContent = `${size.value} px`; };
+    const delayed = () => { status.innerHTML = '<span></span> Salvando'; clearTimeout(pending); pending = setTimeout(save, 220); };
+    update(); text.addEventListener('input', () => { update(); delayed(); }); size.addEventListener('input', () => { update(); delayed(); }); mirror.addEventListener('change', delayed); $('#start').addEventListener('click', save);
+    return;
   }
-  function stopCamera() { if (stream) stream.getTracks().forEach(track => track.stop()); stream = undefined; camera.srcObject = null; }
-  function setScrollButton() { scrollToggle.classList.toggle('is-running', autoScrolling); scrollToggle.innerHTML = autoScrolling ? '<span aria-hidden="true">❚❚</span> Pausar' : '<span aria-hidden="true">▶</span> Continuar'; }
-  function pauseAutoScroll() { autoScrolling = false; cancelAnimationFrame(scrollFrame); previousFrame = undefined; setScrollButton(); }
-  function autoScrollFrame(timestamp) { if (!autoScrolling) return; const elapsed = previousFrame ? (timestamp - previousFrame) / 1000 : 0; previousFrame = timestamp; const bottom = scrollArea.scrollHeight - scrollArea.clientHeight; scrollArea.scrollTop = Math.min(bottom, scrollArea.scrollTop + (+scrollSpeed.value * elapsed)); if (scrollArea.scrollTop >= bottom - 1) { pauseAutoScroll(); return; } scrollFrame = requestAnimationFrame(autoScrollFrame); }
-  function continueAutoScroll() { if (autoScrolling) return; if (scrollArea.scrollTop >= scrollArea.scrollHeight - scrollArea.clientHeight - 1) scrollArea.scrollTop = 0; autoScrolling = true; previousFrame = undefined; setScrollButton(); scrollFrame = requestAnimationFrame(autoScrollFrame); }
-  function toggleAutoScroll() { if (autoScrolling) pauseAutoScroll(); else continueAutoScroll(); }
-  function recordingMimeType() { return ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find(type => MediaRecorder.isTypeSupported(type)) || ''; }
-  function startRecording() {
-    if (!stream || !window.MediaRecorder) { setCameraStatus('A gravação não é compatível neste navegador.'); return; }
-    chunks = []; const type = recordingMimeType(); recorder = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
-    recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
-    recorder.onstop = () => { if (videoUrl) URL.revokeObjectURL(videoUrl); videoUrl = URL.createObjectURL(new Blob(chunks, { type: recorder.mimeType || 'video/webm' })); downloadButton.hidden = false; setCameraStatus('Vídeo pronto para baixar'); };
-    recorder.start(1000); recordButton.classList.add('is-recording'); recordButton.innerHTML = '<span></span> Parar'; setCameraStatus('Gravando…');
-  }
-  function stopRecording() { if (recorder?.state === 'recording') recorder.stop(); recordButton.classList.remove('is-recording'); recordButton.innerHTML = '<span></span> Gravar'; }
-  function toggleRecording() { if (recorder?.state === 'recording') stopRecording(); else startRecording(); }
-  function downloadVideo() { if (!videoUrl) return; const link = document.createElement('a'); link.href = videoUrl; link.download = `teleprompter-${new Date().toISOString().slice(0,19).replaceAll(':','-')}.webm`; link.click(); }
-  async function flipCamera() { facingMode = facingMode === 'user' ? 'environment' : 'user'; await startCamera(); }
-  function enterReader() { save(); readerText.textContent = script.value.trim() || 'Seu texto aparecerá aqui.'; reader.classList.toggle('mirrored', mirror.checked); editor.hidden = true; reader.hidden = false; scrollArea.scrollTop = 0; pauseAutoScroll(); recordButton.disabled = true; flipButton.disabled = true; downloadButton.hidden = true; startCamera(); setTimeout(() => scrollArea.focus(), 50); }
-  function leaveReader() { pauseAutoScroll(); if (recorder?.state === 'recording') stopRecording(); stopCamera(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); reader.hidden = true; editor.hidden = false; }
-  $('#start').addEventListener('click', enterReader); $('#back').addEventListener('click', leaveReader);
-  $('#smaller').addEventListener('click', () => { fontSize.value = Math.max(+fontSize.min, +fontSize.value - 2); updateSize(); });
-  $('#larger').addEventListener('click', () => { fontSize.value = Math.min(+fontSize.max, +fontSize.value + 2); updateSize(); });
+  const saved = get(); let state = { text: saved.text ?? fallback, size: saved.size ?? 32, mirror: saved.mirror ?? false, scrollSpeed: saved.scrollSpeed ?? 22, cameraMirror: saved.cameraMirror ?? false };
+  const reader = $('#reader'), readerText = $('#reader-text'), area = $('#scroll-area'), camera = $('#camera'), status = $('#camera-status'), sizeLabel = $('#reader-size'), speed = $('#scroll-speed'), speedLabel = $('#scroll-speed-value'), scrollButton = $('#scroll-toggle'), record = $('#record'), flip = $('#flip-camera'), download = $('#download'), cameraMirror = $('#mirror-camera');
+  const saveState = () => { state = { ...state, scrollSpeed: +speed.value, cameraMirror: camera.classList.contains('is-mirrored') }; put({ ...saved, ...state }); };
+  readerText.textContent = state.text.trim() || 'Seu texto aparecerá aqui.'; reader.classList.toggle('mirrored', state.mirror); document.documentElement.style.setProperty('--font-size', `${state.size}px`); sizeLabel.textContent = state.size; speed.value = state.scrollSpeed; speedLabel.textContent = `${state.scrollSpeed} px/s`; camera.classList.toggle('is-mirrored', state.cameraMirror); cameraMirror.classList.toggle('is-active', state.cameraMirror); cameraMirror.setAttribute('aria-pressed', String(state.cameraMirror));
+  let stream, mediaRecorder, chunks = [], recordingUrl, facing = 'user', scrolling = false, frame, previous;
+  const cameraStatus = text => { status.textContent = text; };
+  async function openCamera() { if (!navigator.mediaDevices?.getUserMedia) return cameraStatus('A câmera não é compatível com este navegador.'); if (stream) stream.getTracks().forEach(t => t.stop()); cameraStatus('Pedindo acesso à câmera…'); try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing } }, audio: true }); camera.srcObject = stream; await camera.play(); cameraStatus('Câmera pronta'); record.disabled = false; flip.disabled = false; } catch (error) { cameraStatus(error.name === 'NotAllowedError' ? 'Permita câmera e microfone para gravar.' : 'Não foi possível abrir a câmera.'); record.disabled = true; } }
+  const stopCamera = () => { if (stream) stream.getTracks().forEach(t => t.stop()); stream = undefined; camera.srcObject = null; };
+  const chooseType = () => ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t)) || '';
+  function startRecording() { if (!stream || !window.MediaRecorder) return cameraStatus('A gravação não é compatível neste navegador.'); chunks = []; const type = chooseType(); mediaRecorder = new MediaRecorder(stream, type ? { mimeType: type } : undefined); mediaRecorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); }; mediaRecorder.onstop = () => { if (recordingUrl) URL.revokeObjectURL(recordingUrl); recordingUrl = URL.createObjectURL(new Blob(chunks, { type: mediaRecorder.mimeType || 'video/webm' })); download.hidden = false; cameraStatus('Vídeo pronto para baixar'); }; mediaRecorder.start(1000); record.classList.add('is-recording'); record.innerHTML = '<span></span> Parar'; cameraStatus('Gravando…'); }
+  function stopRecording() { if (mediaRecorder?.state === 'recording') mediaRecorder.stop(); record.classList.remove('is-recording'); record.innerHTML = '<span></span> Gravar'; }
+  function setScroll() { scrollButton.classList.toggle('is-running', scrolling); scrollButton.innerHTML = scrolling ? '<span aria-hidden="true">❚❚</span> Pausar' : '<span aria-hidden="true">▶</span> Continuar'; }
+  function pause() { scrolling = false; cancelAnimationFrame(frame); previous = undefined; setScroll(); }
+  function step(now) { if (!scrolling) return; const elapsed = previous ? (now - previous) / 1000 : 0; previous = now; const bottom = area.scrollHeight - area.clientHeight; area.scrollTop = Math.min(bottom, area.scrollTop + (+speed.value * elapsed)); if (area.scrollTop >= bottom - 1) return pause(); frame = requestAnimationFrame(step); }
+  function toggleScroll() { if (scrolling) return pause(); if (area.scrollTop >= area.scrollHeight - area.clientHeight - 1) area.scrollTop = 0; scrolling = true; previous = undefined; setScroll(); frame = requestAnimationFrame(step); }
+  $('#smaller').addEventListener('click', () => { state.size = Math.max(22, state.size - 2); document.documentElement.style.setProperty('--font-size', `${state.size}px`); sizeLabel.textContent = state.size; saveState(); });
+  $('#larger').addEventListener('click', () => { state.size = Math.min(72, state.size + 2); document.documentElement.style.setProperty('--font-size', `${state.size}px`); sizeLabel.textContent = state.size; saveState(); });
   $('#fullscreen').addEventListener('click', async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await reader.requestFullscreen(); } catch {} });
-  recordButton.addEventListener('click', toggleRecording); flipButton.addEventListener('click', flipCamera); downloadButton.addEventListener('click', downloadVideo); mirrorCameraButton.addEventListener('click', toggleCameraMirror);
-  scrollToggle.addEventListener('click', toggleAutoScroll);
-  let hintTimer; scrollArea.addEventListener('touchstart', () => { hint.style.opacity = '0'; pauseAutoScroll(); clearTimeout(hintTimer); }); scrollArea.addEventListener('scroll', () => { hint.style.opacity = '0'; });
-  document.addEventListener('keydown', (event) => { if (!reader.hidden && event.key === 'Escape') leaveReader(); });
+  $('#back').addEventListener('click', () => { pause(); if (mediaRecorder?.state === 'recording') stopRecording(); stopCamera(); });
+  record.addEventListener('click', () => mediaRecorder?.state === 'recording' ? stopRecording() : startRecording()); flip.addEventListener('click', async () => { facing = facing === 'user' ? 'environment' : 'user'; await openCamera(); });
+  download.addEventListener('click', () => { if (!recordingUrl) return; const a = document.createElement('a'); a.href = recordingUrl; a.download = `teleprompter-${new Date().toISOString().slice(0,19).replaceAll(':','-')}.webm`; a.click(); });
+  cameraMirror.addEventListener('click', () => { const active = camera.classList.toggle('is-mirrored'); cameraMirror.classList.toggle('is-active', active); cameraMirror.setAttribute('aria-pressed', String(active)); saveState(); });
+  scrollButton.addEventListener('click', toggleScroll); speed.addEventListener('input', () => { speedLabel.textContent = `${speed.value} px/s`; saveState(); }); area.addEventListener('touchstart', pause); area.addEventListener('scroll', () => { $('.gesture-hint').style.opacity = '0'; });
+  record.disabled = true; flip.disabled = true; openCamera();
 })();
