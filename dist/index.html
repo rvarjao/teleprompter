@@ -44,6 +44,8 @@
   </main>
 
   <main id="reader" class="screen reader-screen" hidden>
+    <video id="camera" class="camera" autoplay muted playsinline aria-hidden="true"></video>
+    <div class="camera-shade" aria-hidden="true"></div>
     <header class="reader-bar">
       <button id="back" class="icon-button" type="button" aria-label="Voltar para edição">←</button>
       <div class="reader-controls">
@@ -56,6 +58,14 @@
     <div id="scroll-area" class="scroll-area" tabindex="0" aria-label="Texto do teleprompter">
       <article id="reader-text"></article>
       <div class="end-mark">fim</div>
+    </div>
+    <div class="record-panel">
+      <span id="camera-status" class="camera-status" aria-live="polite">Preparando câmera…</span>
+      <div class="record-actions">
+        <button id="flip-camera" class="control-button" type="button" aria-label="Trocar câmera">↻</button>
+        <button id="record" class="record-button" type="button"><span></span> Gravar</button>
+        <button id="download" class="control-button" type="button" aria-label="Baixar vídeo" hidden>↓</button>
+      </div>
     </div>
     <div class="gesture-hint" aria-hidden="true">deslize para rolar</div>
   </main>
