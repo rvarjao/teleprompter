@@ -1,0 +1,9 @@
+{
+  "name": "Teleprompter Manual",
+  "short_name": "Teleprompter",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#111315",
+  "theme_color": "#111315",
+  "lang": "pt-BR"
+}

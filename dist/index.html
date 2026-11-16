@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111315">
+  <title>Teleprompter Manual</title>
+  <meta name="description" content="Teleprompter simples com rolagem manual, pronto para usar no celular.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="editor" class="screen editor-screen">
+    <section class="editor-card" aria-labelledby="app-title">
+      <div class="brand-row">
+        <div>
+          <p class="eyebrow">LEITURA SIMPLES</p>
+          <h1 id="app-title">Teleprompter <span>Manual</span></h1>
+        </div>
+        <div class="status" aria-live="polite"><span></span> Salvo</div>
+      </div>
+
+      <label for="script">Seu texto</label>
+      <textarea id="script" placeholder="Cole ou escreva aqui o que você quer ler..."></textarea>
+      <p class="helper"><span id="word-count">0 palavras</span> · seu texto fica salvo neste aparelho</p>
+
+      <div class="settings" aria-label="Ajustes de leitura">
+        <div class="setting">
+          <label for="font-size">Tamanho da fonte <output id="font-value">32 px</output></label>
+          <input id="font-size" type="range" min="22" max="72" value="32" aria-describedby="font-value">
+        </div>
+        <div class="setting switch-row">
+          <div>
+            <strong>Espelhar texto</strong>
+            <small>Para usar com espelho de teleprompter</small>
+          </div>
+          <label class="switch"><input id="mirror" type="checkbox"><span></span><i class="sr-only">Espelhar texto</i></label>
+        </div>
+      </div>
+
+      <button id="start" class="start-button" type="button">Iniciar leitura <span aria-hidden="true">→</span></button>
+      <p class="tip">No modo de leitura, deslize o dedo sobre o texto para rolar no seu ritmo.</p>
+    </section>
+  </main>
+
+  <main id="reader" class="screen reader-screen" hidden>
+    <header class="reader-bar">
+      <button id="back" class="icon-button" type="button" aria-label="Voltar para edição">←</button>
+      <div class="reader-controls">
+        <button id="smaller" class="control-button" type="button" aria-label="Diminuir fonte">A−</button>
+        <span id="reader-size" aria-live="polite">32</span>
+        <button id="larger" class="control-button" type="button" aria-label="Aumentar fonte">A+</button>
+        <button id="fullscreen" class="icon-button" type="button" aria-label="Alternar tela cheia">⛶</button>
+      </div>
+    </header>
+    <div id="scroll-area" class="scroll-area" tabindex="0" aria-label="Texto do teleprompter">
+      <article id="reader-text"></article>
+      <div class="end-mark">fim</div>
+    </div>
+    <div class="gesture-hint" aria-hidden="true">deslize para rolar</div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
