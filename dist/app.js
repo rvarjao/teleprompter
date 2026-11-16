@@ -17,12 +17,30 @@
   const reader = $('#reader'), readerText = $('#reader-text'), area = $('#scroll-area'), camera = $('#camera'), status = $('#camera-status'), sizeLabel = $('#reader-size'), speed = $('#scroll-speed'), speedLabel = $('#scroll-speed-value'), scrollButton = $('#scroll-toggle'), record = $('#record'), flip = $('#flip-camera'), download = $('#download'), cameraMirror = $('#mirror-camera');
   const saveState = () => { state = { ...state, scrollSpeed: +speed.value, cameraMirror: camera.classList.contains('is-mirrored') }; put({ ...saved, ...state }); };
   readerText.textContent = state.text.trim() || 'Seu texto aparecerá aqui.'; reader.classList.toggle('mirrored', state.mirror); document.documentElement.style.setProperty('--font-size', `${state.size}px`); sizeLabel.textContent = state.size; speed.value = state.scrollSpeed; speedLabel.textContent = `${state.scrollSpeed} px/s`; camera.classList.toggle('is-mirrored', state.cameraMirror); cameraMirror.classList.toggle('is-active', state.cameraMirror); cameraMirror.setAttribute('aria-pressed', String(state.cameraMirror));
-  let stream, mediaRecorder, chunks = [], recordingUrl, facing = 'user', scrolling = false, finished = false, frame, previous;
+  let stream, mediaRecorder, chunks = [], recordingUrl, recordingBlob, recordingExtension = 'webm', facing = 'user', scrolling = false, finished = false, frame, previous;
   const cameraStatus = text => { status.textContent = text; };
   async function openCamera() { if (!navigator.mediaDevices?.getUserMedia) return cameraStatus('A câmera não é compatível com este navegador.'); if (stream) stream.getTracks().forEach(t => t.stop()); cameraStatus('Pedindo acesso à câmera…'); try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing } }, audio: true }); camera.srcObject = stream; await camera.play(); cameraStatus('Câmera pronta'); record.disabled = false; flip.disabled = false; } catch (error) { cameraStatus(error.name === 'NotAllowedError' ? 'Permita câmera e microfone para gravar.' : 'Não foi possível abrir a câmera.'); record.disabled = true; } }
   const stopCamera = () => { if (stream) stream.getTracks().forEach(t => t.stop()); stream = undefined; camera.srcObject = null; };
-  const chooseType = () => ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t)) || '';
-  function startRecording() { if (!stream || !window.MediaRecorder) return cameraStatus('A gravação não é compatível neste navegador.'); chunks = []; const type = chooseType(); mediaRecorder = new MediaRecorder(stream, type ? { mimeType: type } : undefined); mediaRecorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); }; mediaRecorder.onstop = () => { if (recordingUrl) URL.revokeObjectURL(recordingUrl); recordingUrl = URL.createObjectURL(new Blob(chunks, { type: mediaRecorder.mimeType || 'video/webm' })); download.hidden = false; cameraStatus('Vídeo pronto para baixar'); }; mediaRecorder.start(1000); record.classList.add('is-recording'); record.innerHTML = '<span></span> Parar'; cameraStatus('Gravando…'); }
+  const chooseType = () => ['video/mp4;codecs="avc1.424028,mp4a.40.2"', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t)) || '';
+  function startRecording() {
+    if (!stream || !window.MediaRecorder) return cameraStatus('A gravação não é compatível neste navegador.');
+    chunks = []; download.hidden = true;
+    const type = chooseType();
+    try { mediaRecorder = new MediaRecorder(stream, type ? { mimeType: type } : undefined); }
+    catch { return cameraStatus('Não foi possível iniciar a gravação neste navegador.'); }
+    mediaRecorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      if (!chunks.length) return cameraStatus('O vídeo não pôde ser salvo. Tente gravar novamente.');
+      if (recordingUrl) URL.revokeObjectURL(recordingUrl);
+      const format = (mediaRecorder.mimeType || chunks[0].type || type || 'video/webm').split(';')[0];
+      recordingExtension = format === 'video/mp4' ? 'mp4' : 'webm';
+      recordingBlob = new Blob(chunks, { type: format });
+      recordingUrl = URL.createObjectURL(recordingBlob);
+      download.hidden = false;
+      cameraStatus('Vídeo pronto. Toque em Salvar vídeo.');
+    };
+    mediaRecorder.start(1000); record.classList.add('is-recording'); record.innerHTML = '<span></span> Parar'; cameraStatus('Gravando…');
+  }
   function stopRecording() { if (mediaRecorder?.state === 'recording') mediaRecorder.stop(); record.classList.remove('is-recording'); record.innerHTML = '<span></span> Gravar'; }
   function setScroll() { scrollButton.classList.toggle('is-running', scrolling); scrollButton.innerHTML = scrolling ? '<span aria-hidden="true">❚❚</span> Pausar' : finished ? '<span aria-hidden="true">⟳</span> Recomeçar' : '<span aria-hidden="true">▶</span> Continuar'; }
   function pause() { scrolling = false; cancelAnimationFrame(frame); previous = undefined; setScroll(); }
@@ -33,7 +51,17 @@
   $('#fullscreen').addEventListener('click', async () => { try { if (document.fullscreenElement) await document.exitFullscreen(); else await reader.requestFullscreen(); } catch {} });
   $('#back').addEventListener('click', () => { pause(); if (mediaRecorder?.state === 'recording') stopRecording(); stopCamera(); });
   record.addEventListener('click', () => mediaRecorder?.state === 'recording' ? stopRecording() : startRecording()); flip.addEventListener('click', async () => { facing = facing === 'user' ? 'environment' : 'user'; await openCamera(); });
-  download.addEventListener('click', () => { if (!recordingUrl) return; const a = document.createElement('a'); a.href = recordingUrl; a.download = `teleprompter-${new Date().toISOString().slice(0,19).replaceAll(':','-')}.webm`; a.click(); });
+  download.addEventListener('click', async () => {
+    if (!recordingBlob) return;
+    const filename = `teleprompter-${new Date().toISOString().slice(0,19).replaceAll(':','-')}.${recordingExtension}`;
+    const file = typeof File !== 'undefined' ? new File([recordingBlob], filename, { type: recordingBlob.type }) : null;
+    if (file && navigator.share && navigator.canShare?.({ files: [file] })) {
+      try { cameraStatus('Para guardar na galeria, escolha Salvar Vídeo.'); await navigator.share({ files: [file] }); return; }
+      catch (error) { if (error.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a'); a.href = recordingUrl; a.download = filename; a.click();
+    cameraStatus('Vídeo baixado. Se necessário, mova-o de Arquivos para a galeria.');
+  });
   cameraMirror.addEventListener('click', () => { const active = camera.classList.toggle('is-mirrored'); cameraMirror.classList.toggle('is-active', active); cameraMirror.setAttribute('aria-pressed', String(active)); saveState(); });
   scrollButton.addEventListener('click', toggleScroll); speed.addEventListener('input', () => { speedLabel.textContent = `${speed.value} px/s`; saveState(); }); area.addEventListener('touchstart', pause); area.addEventListener('scroll', () => { $('.gesture-hint').style.opacity = '0'; if (finished && area.scrollTop < area.scrollHeight - area.clientHeight - 1) { finished = false; setScroll(); } });
   record.disabled = true; flip.disabled = true; openCamera();
