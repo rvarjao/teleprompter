@@ -10,74 +10,20 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main id="editor" class="screen editor-screen">
+  <main class="screen editor-screen">
     <section class="editor-card" aria-labelledby="app-title">
-      <div class="brand-row">
-        <div>
-          <p class="eyebrow">LEITURA SIMPLES</p>
-          <h1 id="app-title">Teleprompter <span>Manual</span></h1>
-        </div>
-        <div class="status" aria-live="polite"><span></span> Salvo</div>
-      </div>
-
+      <div class="brand-row"><div><p class="eyebrow">LEITURA SIMPLES</p><h1 id="app-title">Teleprompter <span>Manual</span></h1></div><div class="status" aria-live="polite"><span></span> Salvo</div></div>
       <label for="script">Seu texto</label>
       <textarea id="script" placeholder="Cole ou escreva aqui o que você quer ler..."></textarea>
       <p class="helper"><span id="word-count">0 palavras</span> · seu texto fica salvo neste aparelho</p>
-
       <div class="settings" aria-label="Ajustes de leitura">
-        <div class="setting">
-          <label for="font-size">Tamanho da fonte <output id="font-value">32 px</output></label>
-          <input id="font-size" type="range" min="22" max="72" value="32" aria-describedby="font-value">
-        </div>
-        <div class="setting switch-row">
-          <div>
-            <strong>Espelhar texto</strong>
-            <small>Para usar com espelho de teleprompter</small>
-          </div>
-          <label class="switch"><input id="mirror" type="checkbox"><span></span><i class="sr-only">Espelhar texto</i></label>
-        </div>
+        <div class="setting"><label for="font-size">Tamanho da fonte <output id="font-value">32 px</output></label><input id="font-size" type="range" min="22" max="72" value="32" aria-describedby="font-value"></div>
+        <div class="setting switch-row"><div><strong>Espelhar texto</strong><small>Para usar com espelho de teleprompter</small></div><label class="switch"><input id="mirror" type="checkbox"><span></span><i class="sr-only">Espelhar texto</i></label></div>
       </div>
-
-      <button id="start" class="start-button" type="button">Iniciar leitura <span aria-hidden="true">→</span></button>
-      <p class="tip">No modo de leitura, deslize o dedo sobre o texto para rolar no seu ritmo.</p>
+      <a id="start" class="start-button" href="reader.html">Iniciar leitura <span aria-hidden="true">→</span></a>
+      <p class="tip">O modo de leitura abre em uma página própria, ideal para gravar com a câmera.</p>
     </section>
   </main>
-
-  <main id="reader" class="screen reader-screen" hidden>
-    <video id="camera" class="camera" autoplay muted playsinline aria-hidden="true"></video>
-    <div class="camera-shade" aria-hidden="true"></div>
-    <header class="reader-bar">
-      <button id="back" class="icon-button" type="button" aria-label="Voltar para edição">←</button>
-      <div class="reader-controls">
-        <button id="smaller" class="control-button" type="button" aria-label="Diminuir fonte">A−</button>
-        <span id="reader-size" aria-live="polite">32</span>
-        <button id="larger" class="control-button" type="button" aria-label="Aumentar fonte">A+</button>
-        <button id="fullscreen" class="icon-button" type="button" aria-label="Alternar tela cheia">⛶</button>
-      </div>
-    </header>
-    <div id="scroll-area" class="scroll-area" tabindex="0" aria-label="Texto do teleprompter">
-      <article id="reader-text"></article>
-      <div class="end-mark">fim</div>
-    </div>
-    <div class="record-panel">
-      <div class="auto-controls">
-        <div class="speed-control">
-          <label for="scroll-speed">Rolagem <output id="scroll-speed-value">22 px/s</output></label>
-          <input id="scroll-speed" type="range" min="6" max="80" value="22" aria-describedby="scroll-speed-value">
-        </div>
-        <button id="scroll-toggle" class="scroll-button" type="button"><span aria-hidden="true">▶</span> Continuar</button>
-      </div>
-      <span id="camera-status" class="camera-status" aria-live="polite">Preparando câmera…</span>
-      <div class="record-actions">
-        <button id="mirror-camera" class="control-button camera-mirror-button" type="button" aria-pressed="false">↔ Espelhar</button>
-        <button id="flip-camera" class="control-button" type="button" aria-label="Trocar câmera">↻</button>
-        <button id="record" class="record-button" type="button"><span></span> Gravar</button>
-        <button id="download" class="control-button" type="button" aria-label="Baixar vídeo" hidden>↓</button>
-      </div>
-    </div>
-    <div class="gesture-hint" aria-hidden="true">deslize para rolar</div>
-  </main>
-
   <script src="app.js"></script>
 </body>
 </html>
